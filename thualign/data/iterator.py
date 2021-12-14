@@ -5,6 +5,7 @@ import abc
 import time
 import queue
 import threading
+from collections import Iterator
 
 from typing import Any, Dict, List, NoReturn, Tuple, Union
 
@@ -97,7 +98,7 @@ class _DatasetWorker(threading.Thread):
         return self._empty
 
 
-class IteratorBase(object):
+class IteratorBase(Iterator):
 
     def __init__(self):
         pass

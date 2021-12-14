@@ -1,18 +1,17 @@
 # coding=utf-8
 # Copyright 2021-Present The THUAlign Authors
-
 import abc
-import torch
+import typing
+from typing import Any, Callable, Dict, List, NoReturn, Tuple, Union
 
-from collections.abc import Sequence
 from torch.utils.data import IterableDataset
+
 from thualign.data.iterator import Iterator
 from thualign.data.vocab import Vocabulary
 from thualign.tokenizers import Tokenizer
-from typing import Any, Dict, NoReturn, List, Tuple, Union, Callable
 
 
-class ElementSpec(object):
+class ElementSpec:
 
     def __init__(self, elem_type, shape):
         self._type = elem_type
@@ -30,7 +29,7 @@ class ElementSpec(object):
         return self._shape
 
 
-class MapFunc(object):
+class MapFunc:
 
     def __init__(self, fn: Callable, spec: ElementSpec):
         self._fn = fn
@@ -53,14 +52,12 @@ class Dataset(IterableDataset):
     def __init__(self):
         self._iterator = None
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> typing.Iterator:
         return Iterator(self)
 
-    @abc.abstractproperty
     def _inputs(self) -> NoReturn:
         raise NotImplementedError("Not implemented.")
 
-    @abc.abstractmethod
     def copy(self) -> NoReturn:
         raise NotImplementedError("Dataset.copy not implemented.")
 
@@ -89,10 +86,6 @@ class Dataset(IterableDataset):
 
     def shard(self, num_shards: int, index: int) -> "ShardDataset":
         return ShardDataset(self, num_shards, index)
-
-    @abc.abstractmethod
-    def set_inputs(self, datasets: Tuple["Dataset"]) -> NoReturn:
-        raise NotImplementedError("Dataset.set_inputs not implemented.")
 
     def tokenize(self, tokenizer: Tokenizer, bos: bytes = b"<bos>",
                  eos: bytes = b"<eos>") -> "TokenizedLineDataset":
@@ -147,7 +140,7 @@ class BackgroundDataset(Dataset):
 
 class BucketDataset(Dataset):
 
-    def __init__(self, dataset: Dataset, bucket_boundaries : List[int],
+    def __init__(self, dataset: Dataset, bucket_boundaries: List[int],
                  batch_sizes: List[int], pad: int = 0, min_length: int = -1,
                  max_length: int = 10000):
         if not self._check_type(dataset.element_spec):
@@ -273,7 +266,7 @@ class BucketDataset(Dataset):
 class LookupDataset(Dataset):
 
     def __init__(self, dataset: Dataset, vocabulary: Vocabulary,
-                 unk_id : int = -1):
+                 unk_id: int = -1):
         if dataset.element_spec.elem_type is not List[bytes]:
             raise ValueError("The input dataset must produces an example of "
                              "`List[bytes]`.")
@@ -281,7 +274,7 @@ class LookupDataset(Dataset):
         self._vocab = vocabulary
         self._unk_id = unk_id
         self._spec = ElementSpec(List[int], "[None]")
-        super(LookupDataset, self).__init__()
+        super().__init__()
 
     def __repr__(self) -> str:
         return "<LookupDataset:%s>" % self._dataset
@@ -325,7 +318,7 @@ class MapDataset(Dataset):
         self._fn = fn
         self._spec = fn.element_spec
 
-        super(MapDataset, self).__init__()
+        super().__init__()
 
     def __repr__(self) -> str:
         return "<MapDataset:%s>" % str(self._dataset)
@@ -368,7 +361,7 @@ class PaddedBatchDataset(Dataset):
 
         self._spec = ElementSpec(_elem_type, _elem_shape)
 
-        super(PaddedBatchDataset, self).__init__()
+        super().__init__()
 
     def __repr__(self) -> str:
         return "<PaddedDataset:%s>" % str(self._dataset)
@@ -434,7 +427,7 @@ class RepeatDataset(Dataset):
 
 class ShardDataset(Dataset):
 
-    def __init__(self, dataset: Dataset, num_shards : int, index : int):
+    def __init__(self, dataset: Dataset, num_shards: int, index: int):
         self._dataset = dataset
         self._num_shards = num_shards
         self._index = index
@@ -477,7 +470,7 @@ class ShardDataset(Dataset):
 class TextLineDataset(DatasetSource):
 
     def __init__(self, buffer_or_filename: Union[List, str],
-                 num_shards: int = 1, index : int = 0):
+                 num_shards: int = 1, index: int = 0):
         self._index = index
         self._num_shards = num_shards
         self._source = buffer_or_filename
@@ -522,7 +515,7 @@ class TokenizedLineDataset(Dataset):
 
         if elem_spec.elem_type is not bytes or elem_spec.shape != "[]":
             raise ValueError("TokenizedLineDataset only accepts a dataset with"
-                              " ElementSpec(bytes, '[None]')")
+                             " ElementSpec(bytes, '[None]')")
 
         self._dataset = dataset
         self._tokenizer = tokenizer
